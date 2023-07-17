@@ -1,0 +1,129 @@
+1. formatar e instalar o SO das raspberry no cartão SD
+
+2. baixar e instalar o apache hadoop e o java-jdk
+
+3. fazer a edição do arquivo hadoop–env.sh, utilizado o comando “sudo nano
+/usr/local/hadoop/etc/hadoop/hadoop-env.sh” no terminal, e apos abrir o editor e colar o seguite comando “/usr/lib/jvm/java-1.11.0-openjdk-arm64”.
+apos o JAVA_HOME=
+
+
+5. aqui foi feito a edição do arquivo environment, basta digitar e “sudo nano /etc/environment” e depois basta digitar:
+PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/usr/local/hadoop/bin:/usr/local/hadoop/sbin"
+JAVA_HOME="/usr/lib/jvm/java-1.11.0-openjdk-arm64"
+
+6. criar o usuário hadoop e dá algumas permissões para os usuários hadoop, para criar o usuario basta inserir o comando "sudo adduser hadoop", e prencher o que vai ser pedido
+para dar as permissões necessarias basta digitar no terminal os seguintes comandos:
+
+sudo usermod -aG hadoop hadoop
+sudo chown hadoop:root -R /usr/local/hadoop/
+sudo chmod g+rwx -R /usr/local/hadoop/
+sudo adduser hadoop sudo
+
+7. definir os IPs que serão usados nas rasps (192.168.0.2 - master), (192.168.0.3 - slave1), (192.168.0.4- slave2).
+
+8. editar o arquivo interfaces, basta utilizar o seguinte comando: “sudo nano /etc/network/interfaces” e em seguida digitar o seguinte texto:
+
+source /etc/network/interfaces.d/*
+auto eth0
+iface eth0 inet static
+address 192.168.0.1
+netmask 255.255.255.0
+network 192.168.0.0
+broadcast 192.168.0.255
+gateway 192.168.0.1
+
+9. editar os arquivos interfaces resolv.conf, basta digitar "sudo nano /etc/resolv.conf" e em seguida colar o seguinte texto:
+
+domain localdomain
+search localdomain
+nameserver 192.168.0.1
+
+e para finalizar a configuração ip basta colocar os seguintes comando no terminal:
+sudo ifdown eth0
+“sudo ifup eth0
+
+10. criar as hosts das slaves e master, digitando o seguinte comando no terminal “sudo nano /etc/hosts” e apos isso colando dentro do arquivo o seguinte texto:
+192.168.0.2 master
+192.168.0.3 slave1
+192.168.0.4 slave2
+
+apos isso volte no terminal e digite o seguinte comando no terminal: “sudo nano /etc/hostname” ao abrir o arquivo digite o seguinte texto "master" na maquina que sera usada como a master e "slave1" e "slave2"
+na maquina que sera usada como slave.
+
+11. criar e conectar a ssh nas máquinas, basta digitar na master o seguinte comando “ssh-keygen -t rsa” para cirar a chave de acesso ssh e nas slaves digite o comando "ssh -i -/.ssh/id_rsa.pub hadoop@master"
+para copiar a chave ssh e da permissão de acesso
+
+12.[somente na Master] editar e configurar o arquivo core-site.xml, basta digitar no terminal “sudo nano /usr/local/hadoop/etc/hadoop/core-site.xml” 
+e em segida colar o seguinte testo entre as tag <configration>:
+
+<property>
+<name>fs.defaultFS</name>
+<value>hdfs://master:9000</value>
+</property
+
+13.[somente na Master] editar o arquivo hdfs-site.xml, basta digitar no terminal o comando “sudo nano /usr/local/hadoop/etc/hadoop/hdfs-site.xml” 
+e quando abrir digitar o seguinte texto entre a tag <configuration>:
+
+<property>
+<name>dfs.namenode.name.dir</name><value>/usr/local/hadoop/data/nameNode</value>
+</property>
+<property>
+<name>dfs.datanode.data.dir</name><value>/usr/local/hadoop/data/dataNode</value>
+</property>
+<property>
+<name>dfs.replication</name>
+<value>2</value>
+</property>
+
+
+14. [somente na master] editar o arquivo mapred, basta digitar no terminal “sudo nano /usr/local/hadoop/etc/hadoop/mapred-site.xml” e em seguida digitar o seguinte texto entre as tag <configuration>:
+
+<property>
+<name>yarn.app.mapreduce.am.env</name>
+<value>HADOOP_MAPRED_HOME=$HADOOP_HOME</value>
+</property>
+<property>
+<name>mapreduce.map.env</name>
+<value>HADOOP_MAPRED_HOME=$HADOOP_HOME</value>
+</property>
+<property>
+<name>mapreduce.reduce.env</name>
+<value>HADOOP_MAPRED_HOME=$HADOOP_HOME</value>
+</property>
+
+15. [somente na master] editar o arquivo masters, basta digitar “sudo nano /usr/local/hadoop/etc/hadoop/masters” e apos isso digitar master.
+
+16. [somente na master] editar o arquivo slaves, basta digitar “sudo nano /usr/local/hadoop/etc/hadoop/slaves” quando abrir digite o seguinte texto:
+slave1
+slave2
+
+17. copiar os aquivos da pasta hadoop da master para as slaves, basta digitar:
+na slave1: "scp /usr/local/hadoop/etc/hadoop/* slave1:/usr/local/hadoop/etc/hadoop/"
+na slave2: "scp /usr/local/hadoop/etc/hadoop/* slave2:/usr/local/hadoop/etc/hadoop/"
+
+18. [somente na master] digitar os seguintes comandos no terminal:
+export HADOOP_HOME="/usr/local/hadoop"
+export HADOOP_COMMON_HOME=$HADOOP_HOME
+export HADOOP_CONF_DIR=$HADOOP_HOME/etc/hadoop
+export HADOOP_HDFS_HOME=$HADOOP_HOME
+export HADOOP_MAPRED_HOME=$HADOOP_HOME
+export HADOOP_YARN_HOME=$HADOOP_HOME
+
+19.[somente na slave1 e slave2] editar o arquivo yarn-site.xml, bastar digitar no terminal "/usr/local/hadoop/etc/hadoop/yarn-site.xml" e em seguida digitar o seguinte texto entre configuration:
+
+<property>
+<name>yarn.resourcemanager.hostname</name>
+<value>master</value>
+</property>
+<property>
+<name>yarn.nodemanager.aux-services</name>
+<value>mapreduce_shuffle</value>
+</property>
+
+20. [somente na master] cirar uma pasta com o nome nameNode, bastar digitar “mkdir -p /usr/local/hadoop/data/nameNode”
+
+21. [somente na slave1 e slave2] criar uma pasta com o nome dataNode basta digitar no terminal  “mkdir -p /usr/local/hadoop/data/dataNode”
+
+22. [somente na master] formatar o hdfs, basta digitar no terminal o “source/etc/environment” e depois digitar no terminal o “hdfs namenode -format”
+
+23. [somente na master] e por fim basta da um start-all.sh para da inicio ao cluster
